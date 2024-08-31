@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db } from '../firebase';
 import { Recipe } from '../types';
-import { FaClock, FaUtensils, FaSearch, FaTag, FaEdit } from 'react-icons/fa';
+import { FaClock, FaUtensils, FaSearch, FaTag, FaEdit, FaTrashAlt } from 'react-icons/fa';
 import EditRecipe from './EditRecipe';
 
 const RecipeList: React.FC = () => {
@@ -55,6 +55,18 @@ const RecipeList: React.FC = () => {
     setIsEditing(false);
   };
 
+  const handleDeleteRecipe = async (recipeId: string) => {
+    if (window.confirm('Are you sure you want to delete this recipe?')) {
+      try {
+        await deleteDoc(doc(db, 'recipes', recipeId));
+        setRecipes(recipes.filter(r => r.id !== recipeId));
+      } catch (error) {
+        console.error('Error deleting recipe:', error);
+        alert('Failed to delete recipe. Please try again.');
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">My Recipes</h1>
@@ -70,7 +82,12 @@ const RecipeList: React.FC = () => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredRecipes.map((recipe) => (
-          <RecipeCard key={recipe.id} recipe={recipe} onView={handleViewRecipe} />
+          <RecipeCard 
+            key={recipe.id} 
+            recipe={recipe} 
+            onView={handleViewRecipe} 
+            onDelete={handleDeleteRecipe}
+          />
         ))}
       </div>
       {selectedRecipe && !isEditing && (
@@ -83,10 +100,25 @@ const RecipeList: React.FC = () => {
   );
 };
 
-const RecipeCard: React.FC<{ recipe: Recipe; onView: (recipe: Recipe) => void }> = ({ recipe, onView }) => (
+const RecipeCard: React.FC<{ 
+  recipe: Recipe; 
+  onView: (recipe: Recipe) => void;
+  onDelete: (recipeId: string) => void;
+}> = ({ recipe, onView, onDelete }) => (
   <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
     <div className="p-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">{recipe.name}</h3>
+      <div className="flex justify-between items-start mb-2">
+        <h3 className="text-xl font-semibold text-gray-800">{recipe.name}</h3>
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(recipe.id);
+          }} 
+          className="text-red-500 hover:text-red-700 transition duration-300"
+        >
+          <FaTrashAlt />
+        </button>
+      </div>
       <div className="flex items-center mb-4">
         <FaTag className="text-green-500 mr-2" />
         <span className="text-sm text-gray-600">{recipe.category}</span>
