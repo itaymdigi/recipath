@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
+import { addDoc, collection, updateDoc, doc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { Recipe } from '../types';
 
 const RecipeForm: React.FC = () => {
@@ -15,13 +16,21 @@ const RecipeForm: React.FC = () => {
     servings: 0,
     category: '',
   });
+  const [photo, setPhoto] = useState<File | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (user) {
       try {
-        const recipeWithUserId = { ...recipe, userId: user.uid };
+        let photoURL = '';
+        if (photo) {
+          const photoRef = ref(storage, `recipes/${user.uid}/${Date.now()}_${photo.name}`);
+          await uploadBytes(photoRef, photo);
+          photoURL = await getDownloadURL(photoRef);
+        }
+
+        const recipeWithUserId = { ...recipe, userId: user.uid, photoURL };
         const docRef = await addDoc(collection(db, 'recipes'), recipeWithUserId);
         console.log('Recipe added with ID: ', docRef.id);
         setSuccessMessage('Recipe added successfully!');
@@ -35,11 +44,28 @@ const RecipeForm: React.FC = () => {
           servings: 0,
           category: '',
         });
+        setPhoto(null);
         // Clear success message after 3 seconds
         setTimeout(() => setSuccessMessage(''), 3000);
       } catch (error) {
         console.error('Error adding recipe: ', error);
         setSuccessMessage('Error adding recipe. Please try again.');
+      }
+    }
+  };
+
+  const addToShoppingList = async () => {
+    if (user && recipe.ingredients) {
+      try {
+        const shoppingListRef = doc(db, 'shoppingLists', user.uid);
+        await updateDoc(shoppingListRef, {
+          items: recipe.ingredients
+        }, { merge: true });
+        setSuccessMessage('Ingredients added to shopping list!');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (error) {
+        console.error('Error adding to shopping list: ', error);
+        setSuccessMessage('Error adding to shopping list. Please try again.');
       }
     }
   };
@@ -128,9 +154,24 @@ const RecipeForm: React.FC = () => {
             rows={4}
           />
         </div>
-        <button type="submit" className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-          Add Recipe
-        </button>
+        <div>
+          <label htmlFor="photo" className="block text-sm font-medium text-gray-700">Photo:</label>
+          <input
+            type="file"
+            id="photo"
+            accept="image/*"
+            onChange={(e) => setPhoto(e.target.files ? e.target.files[0] : null)}
+            className="mt-1 block w-full"
+          />
+        </div>
+        <div className="flex justify-between">
+          <button type="submit" className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+            Add Recipe
+          </button>
+          <button type="button" onClick={addToShoppingList} className="py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            Add to Shopping List
+          </button>
+        </div>
       </form>
     </div>
   );

@@ -1,5 +1,5 @@
 export interface Recipe {
-  id: number;
+  id: string;
   name: string;
   ingredients: string[];
   instructions: string;
@@ -7,10 +7,11 @@ export interface Recipe {
   cookTime: number;
   servings: number;
   category: string;
+  photoURL?: string;
 }
 
 export interface Meal {
   id: number;
-  recipeId: number;
+  recipeId: string;
   date: Date;
 }

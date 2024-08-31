@@ -1,18 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth, db } from '../firebase';
 import { Meal, Recipe } from '../types';
 
 const MealPlanner: React.FC = () => {
+  const [user] = useAuthState(auth);
   const [mealPlan, setMealPlan] = useState<Meal[]>([]);
   const [recipes, setRecipes] = useState<Recipe[]>([]);
 
-  // Dummy data for recipes
-  React.useEffect(() => {
-    setRecipes([
-      { id: 1, name: 'Spaghetti Bolognese', ingredients: ['spaghetti', 'ground beef', 'tomato sauce'], instructions: 'Cook spaghetti...', prepTime: 15, cookTime: 30, servings: 4, category: 'Dinner' },
-      { id: 2, name: 'Chicken Curry', ingredients: ['chicken', 'curry powder', 'coconut milk'], instructions: 'Cut chicken...', prepTime: 20, cookTime: 40, servings: 4, category: 'Dinner' },
-      { id: 3, name: 'Pancakes', ingredients: ['flour', 'milk', 'eggs'], instructions: 'Mix ingredients...', prepTime: 10, cookTime: 15, servings: 2, category: 'Breakfast' },
-    ]);
-  }, []);
+  useEffect(() => {
+    const fetchRecipes = async () => {
+      if (user) {
+        const recipesCollection = collection(db, 'recipes');
+        const userRecipesQuery = query(recipesCollection, where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(userRecipesQuery);
+        const fetchedRecipes: Recipe[] = [];
+        querySnapshot.forEach((doc) => {
+          fetchedRecipes.push({ id: doc.id, ...doc.data() } as Recipe);
+        });
+        setRecipes(fetchedRecipes);
+      }
+    };
+
+    fetchRecipes();
+  }, [user]);
 
   const addMealToPlan = (day: string, recipeId: number) => {
     const newMeal: Meal = {
