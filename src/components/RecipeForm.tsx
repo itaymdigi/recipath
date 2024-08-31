@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { addDoc, collection, updateDoc, doc } from 'firebase/firestore';
+import { addDoc, collection, updateDoc, doc, setDoc, arrayUnion } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth, db, storage } from '../firebase';
@@ -55,11 +55,22 @@ const RecipeForm: React.FC = () => {
   };
 
   const addToShoppingList = async () => {
-    if (user && recipe.ingredients) {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      setSuccessMessage('Please sign in to add items to your shopping list.');
+      return;
+    }
+
+    if (recipe.ingredients && recipe.ingredients.length > 0) {
+      const validIngredients = recipe.ingredients.filter(ingredient => ingredient.trim() !== '');
+      if (validIngredients.length === 0) {
+        setSuccessMessage('No valid ingredients to add to the shopping list.');
+        return;
+      }
       try {
         const shoppingListRef = doc(db, 'shoppingLists', user.uid);
-        await updateDoc(shoppingListRef, {
-          items: recipe.ingredients
+        await setDoc(shoppingListRef, {
+          items: arrayUnion(...validIngredients)
         }, { merge: true });
         setSuccessMessage('Ingredients added to shopping list!');
         setTimeout(() => setSuccessMessage(''), 3000);
@@ -67,6 +78,8 @@ const RecipeForm: React.FC = () => {
         console.error('Error adding to shopping list: ', error);
         setSuccessMessage('Error adding to shopping list. Please try again.');
       }
+    } else {
+      setSuccessMessage('No ingredients to add to the shopping list.');
     }
   };
 
