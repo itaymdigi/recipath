@@ -21,7 +21,9 @@ const AddRecipe: React.FC = () => {
   const [apiKey, setApiKey] = useState<string | null>(null);
 
   useEffect(() => {
+    console.log('Environment variables:', import.meta.env);
     const key = import.meta.env.VITE_SPOONACULAR_API_KEY;
+    console.log('API Key:', key);
     if (key) {
       setApiKey(key);
     } else {
@@ -37,15 +39,18 @@ const AddRecipe: React.FC = () => {
   const searchRecipes = async () => {
     if (!apiKey) {
       console.error('API key is not available');
+      alert('API key is not available. Please check your environment variables.');
       return;
     }
 
     const url = `https://api.spoonacular.com/recipes/complexSearch?apiKey=${apiKey}&query=${searchTerm}&addRecipeInformation=true&number=5`;
 
     try {
+      console.log('Fetching recipes from:', url.replace(apiKey, 'REDACTED'));
       const response = await fetch(url);
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
       }
       const data = await response.json();
       console.log('API Response:', data);
@@ -62,6 +67,7 @@ const AddRecipe: React.FC = () => {
       setSuggestions(formattedSuggestions);
     } catch (error) {
       console.error('Error fetching recipes:', error);
+      alert('Failed to fetch recipes. Please try again.');
     }
   };
 
