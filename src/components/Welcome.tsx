@@ -18,7 +18,7 @@ const Welcome: React.FC = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-600">
       <div className="bg-white p-8 rounded-lg shadow-lg text-center">
-        <h1 className="text-4xl font-bold mb-4 text-gray-800">Welcome to RecipEase</h1>
+        <h1 className="text-4xl font-bold mb-4 text-gray-800">Welcome to Recipath</h1>
         <p className="text-xl mb-8 text-gray-600">Your personal recipe organizer and meal planner</p>
         <button
           onClick={signInWithGoogle}
