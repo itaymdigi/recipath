@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { db, storage } from '../firebase';
+import { db, storage, auth } from '../firebase';
 import { Recipe } from '../types';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../firebase';
 
 interface EditRecipeProps {
   recipe: Recipe;

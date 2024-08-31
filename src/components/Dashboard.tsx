@@ -1,13 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { FaUtensils, FaCalendarAlt, FaShoppingBasket, FaPlusCircle } from 'react-icons/fa';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth, db } from '../firebase';
 
 const Dashboard: React.FC = () => {
+  const [user] = useAuthState(auth);
+  const [recipeCount, setRecipeCount] = useState(0);
+
+  useEffect(() => {
+    const fetchRecipeCount = async () => {
+      if (user) {
+        const recipesCollection = collection(db, 'recipes');
+        const userRecipesQuery = query(recipesCollection, where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(userRecipesQuery);
+        setRecipeCount(querySnapshot.size);
+      }
+    };
+
+    fetchRecipeCount();
+  }, [user]);
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Welcome to Recipath</h1>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <DashboardCard to="/recipes" icon={<FaUtensils />} title="My Recipes" description="View and manage your recipes" />
+        <DashboardCard to="/recipes" icon={<FaUtensils />} title="My Recipes" description={`You have ${recipeCount} recipes`} />
         <DashboardCard to="/meal-planner" icon={<FaCalendarAlt />} title="Meal Planner" description="Plan your meals for the week" />
         <DashboardCard to="/shopping-list" icon={<FaShoppingBasket />} title="Shopping List" description="Manage your shopping list" />
         <DashboardCard to="/add-recipe" icon={<FaPlusCircle />} title="Add Recipe" description="Create a new recipe" />
