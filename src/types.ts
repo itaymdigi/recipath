@@ -3,6 +3,10 @@ export interface Recipe {
   name: string;
   ingredients: string[];
   instructions: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  category: string;
 }
 
 export interface Meal {
