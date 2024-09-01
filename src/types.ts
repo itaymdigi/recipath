@@ -1,10 +1,14 @@
 export interface Recipe {
   id: string;
-  title: string;
-  ingredients: string | string[]; // Allow for both string and array of strings
-  instructions: string;
-  photoURL?: string; // Make photoURL optional
   userId: string;
+  name: string;
+  ingredients: string[];
+  instructions: string;
+  prepTime: number;
+  cookTime: number;
+  servings: number;
+  category: string;
+  photoURL?: string;
 }
 
 export interface Meal {

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { collection, query, where, getDocs, deleteDoc, doc, addDoc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, doc, addDoc, updateDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { Recipe } from '../types';
 import { FaClock, FaUtensils, FaSearch, FaTag, FaEdit, FaTrashAlt, FaGlobeAmericas } from 'react-icons/fa';
 import EditRecipe from './EditRecipe';
@@ -18,6 +19,7 @@ const RecipeList: React.FC = () => {
   useEffect(() => {
     const fetchRecipes = async () => {
       if (user) {
+        console.log("Fetching recipes for user:", user.uid);
         const recipesCollection = collection(db, 'recipes');
         const userRecipesQuery = query(recipesCollection, where('userId', '==', user.uid));
         const querySnapshot = await getDocs(userRecipesQuery);
@@ -25,6 +27,7 @@ const RecipeList: React.FC = () => {
         querySnapshot.forEach((doc) => {
           fetchedRecipes.push({ id: doc.id, ...doc.data() } as Recipe);
         });
+        console.log("Fetched recipes:", fetchedRecipes);
         setRecipes(fetchedRecipes);
       }
     };
@@ -32,11 +35,16 @@ const RecipeList: React.FC = () => {
     fetchRecipes();
   }, [user]);
 
+  useEffect(() => {
+    console.log("Recipes state updated:", recipes);
+  }, [recipes]);
+
   const filteredRecipes = recipes.filter(recipe =>
     recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     recipe.ingredients.some(ingredient => ingredient.toLowerCase().includes(searchTerm.toLowerCase())) ||
     recipe.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  console.log("Filtered recipes:", filteredRecipes);
 
   const handleViewRecipe = (recipe: Recipe) => {
     setSelectedRecipe(recipe);
@@ -51,10 +59,19 @@ const RecipeList: React.FC = () => {
     setIsEditing(true);
   };
 
-  const handleUpdateRecipe = (updatedRecipe: Recipe) => {
-    setRecipes(recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
-    setSelectedRecipe(updatedRecipe);
-    setIsEditing(false);
+  const handleUpdateRecipe = async (updatedRecipe: Recipe) => {
+    if (user) {
+      try {
+        const recipeRef = doc(db, 'recipes', updatedRecipe.id);
+        await updateDoc(recipeRef, updatedRecipe);
+        setRecipes(recipes.map(r => r.id === updatedRecipe.id ? updatedRecipe : r));
+        setSelectedRecipe(updatedRecipe);
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Error updating recipe:', error);
+        alert('Failed to update recipe. Please try again.');
+      }
+    }
   };
 
   const handleDeleteRecipe = async (recipeId: string) => {
@@ -97,11 +114,25 @@ const RecipeList: React.FC = () => {
           ...recipe,
           userId: user.uid,
           cookTime: 0, // You might want to add this field to the API response or set a default value
+          photoURL: '', // We'll update this after uploading the image
         };
         const docRef = await addDoc(collection(db, 'recipes'), newRecipe);
-        setRecipes([...recipes, { id: docRef.id, ...newRecipe } as Recipe]);
+        const addedRecipe = { id: docRef.id, ...newRecipe } as Recipe;
+        setRecipes([...recipes, addedRecipe]);
         setApiSuggestions([]);
         setApiSearchTerm('');
+
+        // If there's an image URL from the API, download and upload it to Firebase Storage
+        if (recipe.photoURL) {
+          const response = await fetch(recipe.photoURL);
+          const blob = await response.blob();
+          const imageRef = ref(storage, `recipes/${user.uid}/${docRef.id}`);
+          await uploadBytes(imageRef, blob);
+          const downloadURL = await getDownloadURL(imageRef);
+          await updateDoc(docRef, { photoURL: downloadURL });
+          addedRecipe.photoURL = downloadURL;
+          setRecipes(recipes.map(r => r.id === addedRecipe.id ? addedRecipe : r));
+        }
       } catch (error) {
         console.error('Error adding recipe:', error);
         alert('Failed to add recipe. Please try again.');
@@ -161,16 +192,20 @@ const RecipeList: React.FC = () => {
           </ul>
         </div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredRecipes.map((recipe) => (
-          <RecipeCard 
-            key={recipe.id} 
-            recipe={recipe} 
-            onView={handleViewRecipe} 
-            onDelete={handleDeleteRecipe}
-          />
-        ))}
-      </div>
+      {filteredRecipes.length === 0 ? (
+        <p>No recipes found. Try adding some recipes or adjusting your search.</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredRecipes.map((recipe) => (
+            <RecipeCard 
+              key={recipe.id} 
+              recipe={recipe} 
+              onView={handleViewRecipe} 
+              onDelete={handleDeleteRecipe}
+            />
+          ))}
+        </div>
+      )}
       {selectedRecipe && !isEditing && (
         <RecipeModal recipe={selectedRecipe} onClose={handleCloseRecipe} onEdit={handleEditRecipe} />
       )}
