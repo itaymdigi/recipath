@@ -25,6 +25,7 @@ const App: React.FC = () => {
             <Route path="/add-recipe" element={user ? <AddRecipe /> : <Navigate to="/" replace />} />
             <Route path="/meal-planner" element={user ? <MealPlanner /> : <Navigate to="/" replace />} />
             <Route path="/shopping-list" element={user ? <ShoppingList /> : <Navigate to="/" replace />} />
+            <Route path="/dashboard" element={<Dashboard />} />
           </Routes>
         </main>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage, auth } from '../firebase';
@@ -16,6 +16,17 @@ const EditRecipe: React.FC<EditRecipeProps> = ({ recipe, onClose, onUpdate }) =>
   const [editedRecipe, setEditedRecipe] = useState<Recipe>(recipe);
   const [photo, setPhoto] = useState<File | null>(null);
   const [successMessage, setSuccessMessage] = useState('');
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setEditedRecipe(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setPhoto(e.target.files[0]);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +64,37 @@ const EditRecipe: React.FC<EditRecipeProps> = ({ recipe, onClose, onUpdate }) =>
           <div className="mb-4 p-2 bg-green-100 text-green-700 rounded">{successMessage}</div>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Add form fields similar to RecipeForm, but populated with editedRecipe data */}
+          <input
+            type="text"
+            name="title"
+            value={editedRecipe.title}
+            onChange={handleInputChange}
+            placeholder="Recipe Title"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <textarea
+            name="ingredients"
+            value={editedRecipe.ingredients}
+            onChange={handleInputChange}
+            placeholder="Ingredients (one per line)"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <textarea
+            name="instructions"
+            value={editedRecipe.instructions}
+            onChange={handleInputChange}
+            placeholder="Instructions"
+            className="w-full p-2 border rounded"
+            required
+          />
+          <input
+            type="file"
+            onChange={handlePhotoChange}
+            accept="image/*"
+            className="w-full p-2 border rounded"
+          />
           <button type="submit" className="w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
             Update Recipe
           </button>
