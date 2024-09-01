@@ -1,29 +1,43 @@
 import React from 'react';
-import { signInWithPopup, signOut } from 'firebase/auth';
+import { signInWithPopup, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth, googleProvider } from '../firebase';
+import { auth } from '../firebase';
 
 const Auth: React.FC = () => {
   const [user] = useAuthState(auth);
 
-  const signInWithGoogle = () => {
-    signInWithPopup(auth, googleProvider)
-      .then(() => {
-        console.log('Signed in successfully');
-      })
-      .catch((error) => {
-        console.error('Error signing in with Google', error);
-      });
+  const signInWithGoogle = async () => {
+    // Sign out and clear any existing auth state
+    await auth.signOut();
+    
+    // Create a new instance of GoogleAuthProvider for each sign-in attempt
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account',
+      login_hint: '',
+      access_type: 'offline',
+      include_granted_scopes: 'true'
+    });
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      console.log('Signed in successfully', result.user);
+    } catch (error) {
+      console.error('Error signing in with Google', error);
+    }
   };
 
-  const handleSignOut = () => {
-    signOut(auth)
-      .then(() => {
-        console.log('Signed out successfully');
-      })
-      .catch((error) => {
-        console.error('Error signing out', error);
-      });
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      console.log('Signed out successfully');
+      // Clear any cached credentials
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.disableAutoSelect();
+      }
+    } catch (error) {
+      console.error('Error signing out', error);
+    }
   };
 
   return (

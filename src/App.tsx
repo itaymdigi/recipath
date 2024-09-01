@@ -21,11 +21,13 @@ const App: React.FC = () => {
         <main className="container mx-auto px-4 py-8">
           <Routes>
             <Route path="/" element={user ? <Dashboard /> : <Welcome />} />
+            <Route path="/home" element={<Navigate to="/" replace />} />
+            <Route path="/dashboard" element={user ? <Dashboard /> : <Navigate to="/" replace />} />
             <Route path="/recipes" element={user ? <RecipeList /> : <Navigate to="/" replace />} />
             <Route path="/add-recipe" element={user ? <AddRecipe /> : <Navigate to="/" replace />} />
             <Route path="/meal-planner" element={user ? <MealPlanner /> : <Navigate to="/" replace />} />
             <Route path="/shopping-list" element={user ? <ShoppingList /> : <Navigate to="/" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
       </div>

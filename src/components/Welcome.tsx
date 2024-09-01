@@ -1,14 +1,22 @@
 import React from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
-import { auth, googleProvider } from '../firebase';
+import { auth } from '../firebase';
 
 const Welcome: React.FC = () => {
   const navigate = useNavigate();
 
   const signInWithGoogle = async () => {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({
+      prompt: 'select_account',
+      login_hint: '',
+      access_type: 'offline',
+      include_granted_scopes: 'true'
+    });
+
     try {
-      await signInWithPopup(auth, googleProvider);
+      await signInWithPopup(auth, provider);
       navigate('/home');
     } catch (error) {
       console.error('Error signing in with Google', error);
